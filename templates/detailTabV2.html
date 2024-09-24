@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сравнение данных</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            background-color: #333; /* Dark background */
+            color: #fff; /* Light text */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #fff; /* Light text */
+            margin-bottom: 10px;
+        }
+
+        form {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="date"], button, .project-label {
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #666; /* Dark border */
+            outline: none;
+            background-color: #444; /* Dark background */
+            color: #fff; /* Light text */
+            font-size: 14px;
+        }
+
+        input[type="date"] {
+            background-color: #555; /* Slightly lighter background for date */
+        }
+
+        button {
+            cursor: pointer;
+            background-color: #007bff; /* Blue button */
+            color: #fff; /* White text */
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        .project-label {
+            display: block;
+            text-align: left;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #fff; /* Light text */
+        }
+
+        input[type="checkbox"] {
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        select {
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #666;
+            outline: none;
+            background-color: #555;
+            color: #fff;
+            font-size: 14px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        #tableContainer {
+            max-height: 70vh;
+            overflow-y: auto;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        th {
+            background-color: #2c2c2c;
+            color: #fff;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:nth-child(even) {
+            background-color: #252525;
+        }
+
+        tr:hover {
+            background-color: #2a2a2a;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Стили для колонок 1C */
+        td:nth-child(5n+5),
+        td:nth-child(5n+6),
+        td:nth-child(5n+7),
+        td:nth-child(5n+8),
+        td:nth-child(5n+9) {
+            background-color: rgba(41, 121, 255, 0.1);
+        }
+
+        /* Стили для колонок Hik */
+        td:nth-child(5n+10),
+        td:nth-child(5n+11),
+        td:nth-child(5n+12),
+        td:nth-child(5n+13),
+        td:nth-child(5n+14) {
+            background-color: rgba(255, 193, 7, 0.1);
+        }
+
+        /* Стили для итоговых колонок */
+        td:nth-last-child(-n+3) {
+            font-weight: bold;
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+
+        /* Анимация для подсветки ячеек */
+        @keyframes highlight {
+            0% {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+            100% {
+                background-color: inherit;
+            }
+        }
+
+        .highlight {
+            animation: highlight 1s ease-out;
+        }
+
+        /* Стили для скроллбара */
+        #tableContainer::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        #tableContainer::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        #tableContainer::-webkit-scrollbar-thumb {
+            background-color: #4a4a4a;
+            border-radius: 6px;
+            border: 3px solid #1e1e1e;
+        }
+
+        #tableContainer::-webkit-scrollbar-thumb:hover {
+            background-color: #5a5a5a;
+        }
+
+        #loading {
+            text-align: center;
+            font-size: 18px;
+            color: #fff; /* Light text */
+            margin-top: 20px;
+        }
+
+        #results {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #searchInput {
+            display: block;
+            margin: 0 auto 20px;
+            padding: 10px;
+            width: 80%;
+            max-width: 600px;
+            border: 1px solid #666;
+            border-radius: 5px;
+            font-size: 14px;
+            background-color: #444; /* Dark background */
+            color: #fff; /* Light text */
+        }
+
+        /* Стили для формы добавления */
+        .add-form {
+            background-color: #444; /* Dark background */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .add-form label {
+            display: block;
+            margin-bottom: 10px;
+            color: #fff; /* Light text */
+        }
+
+        .add-form input[type="text"], .add-form input[type="number"], .add-form select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #666; /* Dark border */
+            border-radius: 5px;
+            outline: none;
+            background-color: #555; /* Dark background */
+            color: #fff; /* Light text */
+            font-size: 14px;
+        }
+
+        .add-form button {
+            cursor: pointer;
+            background-color: #007bff; /* Blue button */
+            color: #fff; /* White text */
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .add-form button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #333;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            color: #fff; /* Light text */
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        #tableContainer {
+            max-height: 70vh;
+            overflow: auto;
+            position: relative;
+        }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #444;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background-color: #2c2c2c;
+            z-index: 10;
+        }
+
+        td:nth-child(-n+4) {
+            position: sticky;
+            left: 0;
+            background-color: #1e1e1e;
+            z-index: 5;
+        }
+
+        tr:nth-child(even) {
+            background-color: #252525;
+        }
+
+        .highlight-diff {
+            background-color: rgba(255, 0, 0, 0.2);
+        }
+
+        .collapsed-row {
+            display: none;
+        }
+
+        .expand-btn {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #unidentifiedEventsBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #unidentifiedEventsModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #2c2c2c;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal {
+            z-index: 1000;
+        }
+
+        #hikModal {
+            z-index: 1001;
+        }
+
+        .sticky-header th {
+            position: sticky;
+            top: 0;
+            background-color: #2c2c2c;
+            z-index: 10;
+        }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #444;
+        }
+
+        tr:nth-child(even) {
+            background-color: #252525;
+        }
+
+        tr:hover {
+            background-color: #3a3a3a;
+        }
+
+        .highlight-cell {
+            background-color: rgba(255, 255, 0, 0.2);
+            transition: background-color 0.3s;
+        }
+
+        #tableContainer {
+            max-height: calc(100vh - 250px);
+            overflow-y: auto;
+        }
+
+        .details-row {
+            transition: all 0.3s ease-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .details-row:not(.collapsed-row) {
+            max-height: 500px; /* Подберите подходящее значение */
+        }
+
+        .modal-content {
+            background-color: #2c2c2c;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #unidentifiedEventsTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #unidentifiedEventsTable th, #unidentifiedEventsTable td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+
+        #unidentifiedEventsTable th {
+            background-color: #333;
+            color: #fff;
+        }
+
+        #unidentifiedEventsTable tr:hover {
+            background-color: #3a3a3a;
+        }
+
+        .event-photo {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .event-photo:hover {
+            transform: scale(1.1);
+        }
+
+        .employee-id, .employee-name {
+            width: 100%;
+            padding: 8px;
+            margin: 4px 0;
+            background-color: #444;
+            border: 1px solid #555;
+            color: #fff;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #hikModal .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 15px;
+        }
+
+        #hikModal .close:hover,
+        #hikModal .close:focus {
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<h1>Сравнение данных
+    <p><a href="/">Перейти к основной</a></p>
+</h1>
+
+<form id="compareForm">
+    <label for="startDate">Начальная дата:</label>
+    <input type="date" id="startDate" name="startDate" required>
+
+    <label for="endDate">Конечная дата:</label>
+    <input type="date" id="endDate" name="endDate" required>
+    <br><br>
+    <div style="text-align: left; margin-left: 20px;">
+        <label>Выберите проекты:</label><br>
+        <!-- Предположим, что проект передается через переменные на сервере -->
+        {{range .Projects}}
+        <label class="project-label">
+            <input type="checkbox" name="projects" value="{{.}}"> {{.}}
+        </label>
+        {{end}}
+    </div>
+    <br>
+    <button type="submit">Сравнить</button>
+</form>
+<input type="text" id="searchInput" placeholder="Поиск по таблице...">
+<div id="loading" style="display: none;">Загрузка данных...</div>
+<div id="results"></div>
+<button id="exportBtn" style="display: none;">Экспорт в Excel</button>
+<div id="hikModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="hikModalContent"></div>
+    </div>
+</div>
+<div id="tableContainer"></div>
+
+<button id="unidentifiedEventsBtn">Показать неопознанные события</button>
+
+<div id="unidentifiedEventsModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Неопознанные события</h2>
+        <div id="unidentifiedEventsContent"></div>
+    </div>
+</div>
+
+<script>
+    const unidentifiedEventsModal = document.getElementById('unidentifiedEventsModal');
+    const hikModal = document.getElementById('hikModal');
+    const unidentifiedEventsBtn = document.getElementById('unidentifiedEventsBtn');
+    const closeButtons = document.getElementsByClassName('close');
+
+    unidentifiedEventsBtn.onclick = () => {
+        unidentifiedEventsModal.style.display = 'block';
+    }
+
+    Array.from(closeButtons).forEach(closeBtn => {
+        closeBtn.onclick = function () {
+            this.closest('.modal').style.display = 'none';
+        }
+    });
+
+    window.onclick = function (event) {
+        if (event.target == unidentifiedEventsModal) {
+            unidentifiedEventsModal.style.display = 'none';
+        } else if (event.target == hikModal) {
+            hikModal.style.display = 'none';
+        }
+    }
+    document.getElementById('compareForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        const startDate = formData.get('startDate');
+        const endDate = formData.get('endDate');
+        const projects = formData.getAll('projects');
+
+        if (!startDate || !endDate || projects.length === 0) {
+            alert('Пожалуйста, выберите даты начала и конца периода, а также хотя бы один проект');
+            return;
+        }
+
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('results').innerHTML = '';
+
+        try {
+            const response = await axios.post('/compare', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            console.log(response.data);
+            displayResults(response.data, startDate, endDate);
+        } catch (error) {
+            document.getElementById('results').innerHTML = `<p>Произошла ошибка: ${error.message}</p>`;
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    });
+
+    function displayResults(data, startDate, endDate) {
+        const resultsElement = document.getElementById('results');
+        const tables = createComparisonTable(data.users1C, data.usersHik, startDate, endDate);
+
+        let html = '<h2>Результаты сравнения</h2>';
+        html += '<div id="tableContainer">' + tables.mainTable + '</div>';
+        resultsElement.innerHTML = html;
+
+        // Обновляем содержимое модального окна неопознанных событий
+        document.getElementById('unidentifiedEventsContent').innerHTML = tables.unidentifiedEventsTable;
+
+        document.getElementById('exportBtn').style.display = 'block';
+
+        loadUnidentifiedEventPhotos();
+        // Добавим обработчик событий для анимации при клике на ячейку
+        document.querySelectorAll('#resultTable td').forEach(cell => {
+            cell.addEventListener('click', function () {
+                this.classList.add('highlight');
+                setTimeout(() => {
+                    this.classList.remove('highlight');
+                }, 1000);
+            });
+        });
+
+        // Добавим тултипы для ячеек с данными
+        const table = document.getElementById('resultTable');
+        table.querySelectorAll('td').forEach(cell => {
+            if (cell.textContent && !isNaN(parseFloat(cell.textContent))) {
+                cell.title = `Значение: ${cell.textContent}`;
+            }
+        });
+    }
+
+
+    function createComparisonTable(users1C, usersHik, startDate, endDate) {
+        if ((!users1C || Object.keys(users1C).length === 0) && (!usersHik || Object.keys(usersHik).length === 0)) {
+            return '<p>Нет данных для отображения</p>';
+        }
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const daysInPeriod = (end - start) / (1000 * 60 * 60 * 24) + 1;
+
+        let table = '<table id="resultTable"><thead><tr><th>Табельный номер</th><th>ФИО сотрудника</th><th>Объект</th><th>Бригада</th>';
+
+        for (let day = 0; day < daysInPeriod; day++) {
+            const currentDate = new Date(start);
+            currentDate.setDate(start.getDate() + day);
+            const dateStr = currentDate.toISOString().split('T')[0];
+            table += `<th>${dateStr} (1C)</th><th>${dateStr} (Hik)</th>`;
+        }
+        table += '<th>Итого (1C)</th><th>Итого (Hik)</th><th>Разница</th></tr></thead><tbody>';
+
+        const allUsers = new Map();
+
+        // Добавляем пользователей из 1C
+        for (const [tab, user1C] of Object.entries(users1C)) {
+            allUsers.set(tab, {...user1C, hikData: null});
+        }
+
+        // Добавляем или обновляем пользователей из HikVision
+        for (const [personId, userHik] of Object.entries(usersHik)) {
+            if (personId === 'unidentified') continue;
+
+            const existingUser = Array.from(allUsers.values()).find(u =>
+                u.Employee && userHik.PersonName.includes(u.Employee.split(' ')[0]) &&
+                userHik.PersonName.includes(u.Employee.split(' ')[1])
+            );
+
+            if (existingUser) {
+                existingUser.hikData = userHik;
+            } else {
+                allUsers.set(personId, {
+                    Tab: personId,
+                    Employee: userHik.PersonName,
+                    Object: userHik.Object || 'Неизвестно',
+                    Brigade: 'Неизвестно',
+                    Dates: {},
+                    hikData: userHik
+                });
+            }
+        }
+
+        for (const [personId, user] of allUsers) {
+            let total1C = 0;
+            let totalHik = 0;
+            let hasData = false;
+
+            table += `<tr>
+                <td>${user.Tab || personId}</td>
+                <td>${user.Employee}</td>
+                <td>${user.Object || 'Неизвестно'}</td>
+                <td>${user.Brigade || 'Неизвестно'}</td>`;
+
+            for (let day = 0; day < daysInPeriod; day++) {
+                const currentDate = new Date(start);
+                currentDate.setDate(start.getDate() + day);
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const hours1C = user.Dates[dateStr] || 0;
+                const hoursHik = user.hikData ? (user.hikData.Dates[dateStr] || '00:00') : '00:00';
+                const firstEntry = user.hikData ? (user.hikData.FirstEntry[dateStr] || '') : '';
+                const lastExit = user.hikData ? (user.hikData.LastExit[dateStr] || '') : '';
+
+                let hikHours = 0;
+                if (typeof hoursHik === 'string') {
+                    if (!hoursHik.startsWith('У') && !hoursHik.startsWith('П')) {
+                        const [hours, minutes] = hoursHik.split(':').map(Number);
+                        hikHours = hours + minutes / 60;
+                    }
+                } else if (typeof hoursHik === 'number') {
+                    hikHours = hoursHik;
+                }
+
+                if (typeof hours1C === 'number' && !['У', 'П', 'ВВ', 'ДО'].includes(hours1C)) {
+                    total1C += hours1C;
+                }
+                totalHik += hikHours;
+
+                if (hours1C > 0 || hikHours > 0) {
+                    hasData = true;
+                }
+
+                const diff = Math.abs(hours1C - hikHours);
+                const isHighlighted = diff > 0.5;  // Разница больше 30 минут
+
+                table += `<td>${hours1C}</td><td class="${isHighlighted ? 'highlight' : ''}"
+                  onclick="showHikDetails('${firstEntry.Time}', '${lastExit.Time}', '${firstEntry.PicUri}', '${lastExit.PicUri}')">${hoursHik}</td>`;
+            }
+
+            if (!hasData && !user.hikData) {
+                continue;  // Пропускаем пользователей без данных
+            }
+
+            const diff = total1C - totalHik;
+
+            table += `<td>${total1C.toFixed(2)}</td><td>${totalHik.toFixed(2)}</td><td>${diff.toFixed(2)}</td></tr>`;
+        }
+
+
+        table += '</tbody></table>';
+
+        // Создаем отдельную таблицу для неопознанных событий
+        let unidentifiedEventsTable = '<table id="unidentifiedEventsTable">';
+        unidentifiedEventsTable += `
+        <tr>
+            <th>Дата и время</th>
+            <th>Устройство</th>
+            <th>Фото</th>
+            <th>Табельный номер</th>
+            <th>ФИО сотрудника</th>
+            <th>Действия</th>
+        </tr>
+    `;
+
+        if (usersHik.unidentified && usersHik.unidentified.UnidentifiedEvents) {
+            for (const [date, events] of Object.entries(usersHik.unidentified.UnidentifiedEvents)) {
+                for (const [index, event] of events.entries()) {
+                    unidentifiedEventsTable += `
+                    <tr class="unidentified-event" data-date="${date}" data-index="${index}">
+    <td>${formatDateTime(event.Time)}</td>
+    <td>${event.DoorIndexCode}</td>
+    <td>
+        <img src="#" alt="Фото события" class="event-photo"
+             data-picuri="${event.PicUri}" style="width:50px;height:50px;cursor:pointer;">
+    </td>
+    <td>
+        <input type="text" class="employee-id" placeholder="Табельный номер">
+    </td>
+    <td>
+        <input type="text" class="employee-name" placeholder="ФИО сотрудника">
+    </td>
+    <td>
+        <label>
+            <input type="checkbox" class="night-shift-checkbox"> Ночная смена
+        </label>
+    </td>
+    <td>
+        <button onclick="assignUnidentifiedEvent(this, '${startDate}', '${endDate}')">Назначить</button>
+    </td>
+</tr>
+                `;
+                }
+            }
+        }
+
+        unidentifiedEventsTable += '</table>';
+
+        return {mainTable: table, unidentifiedEventsTable: unidentifiedEventsTable};
+    }
+
+    // Добавляем обработчики событий после создания таблицы
+    document.addEventListener('DOMContentLoaded', () => {
+        const unidentifiedEventsModal = document.getElementById('unidentifiedEventsModal');
+        const hikModal = document.getElementById('hikModal');
+        const unidentifiedEventsBtn = document.getElementById('unidentifiedEventsBtn');
+        const closeButtons = document.getElementsByClassName('close');
+
+        unidentifiedEventsBtn.onclick = () => {
+            unidentifiedEventsModal.style.display = 'block';
+        }
+
+        Array.from(closeButtons).forEach(closeBtn => {
+            closeBtn.onclick = function () {
+                this.closest('.modal').style.display = 'none';
+            }
+        });
+
+        window.onclick = function (event) {
+            if (event.target == unidentifiedEventsModal) {
+                unidentifiedEventsModal.style.display = 'none';
+            } else if (event.target == hikModal) {
+                hikModal.style.display = 'none';
+            }
+        }
+        document.body.addEventListener('click', (e) => {
+            if (e.target.classList.contains('expand-btn')) {
+                const row = e.target.closest('tr');
+                const detailsRow = row.nextElementSibling;
+                detailsRow.classList.toggle('collapsed-row');
+                e.target.textContent = detailsRow.classList.contains('collapsed-row') ? '+' : '-';
+            }
+        });
+
+        const modal = document.getElementById('unidentifiedEventsModal');
+        const btn = document.getElementById('unidentifiedEventsBtn');
+        const span = document.getElementsByClassName('close')[0];
+
+        btn.onclick = () => {
+            modal.style.display = 'block';
+        }
+
+        span.onclick = () => {
+            modal.style.display = 'none';
+        }
+
+
+    });
+
+    // Функция для сортировки таблицы
+    function sortTable(n) {
+        const table = document.getElementById('resultTable');
+        let rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        switching = true;
+        dir = 'asc';
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+            for (i = 1; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName('TD')[n];
+                y = rows[i + 1].getElementsByTagName('TD')[n];
+                if (dir == 'asc') {
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else if (dir == 'desc') {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            }
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else {
+                if (switchcount == 0 && dir == 'asc') {
+                    dir = 'desc';
+                    switching = true;
+                }
+            }
+        }
+    }
+
+    // Добавляем возможность сортировки при клике на заголовок столбца
+    document.querySelectorAll('#resultTable th').forEach((th, index) => {
+        th.addEventListener('click', () => sortTable(index));
+    });
+
+    function loadUnidentifiedEventPhotos() {
+        const photos = document.querySelectorAll('#unidentifiedEventsTable .event-photo');
+        for (const photo of photos) {
+            const picUri = photo.dataset.picuri;
+            getEventPicture(picUri).then(imageUrl => {
+                if (imageUrl) {
+                    photo.src = imageUrl;
+                    photo.onclick = () => showEventPhoto(imageUrl);
+                }
+            });
+        }
+    }
+
+    function showEventPhoto(imageUrl) {
+        showModal(`<img src="${imageUrl}" alt="Фото события" style="max-width:100%;">`);
+    }
+
+    async function assignUnidentifiedEvent(button, startDate, endDate) {
+        const row = button.closest('tr');
+        const date = row.dataset.date;
+        const index = parseInt(row.dataset.index);
+        const employeeId = row.querySelector('.employee-id').value;
+        const employeeName = row.querySelector('.employee-name').value;
+
+        if (!employeeId || !employeeName) {
+            alert('Пожалуйста, введите табельный номер и ФИО сотрудника');
+            return;
+        }
+
+        try {
+            const response = await axios.post('/assignUnidentifiedEvent', {
+                personId: employeeId,
+                personName: employeeName,
+                date,
+                index,
+                object: "Добавлен вручную"
+            });
+            console.log(response.data);
+
+            // Обновляем локальные данные
+            users1C = response.data.users1C;
+            usersHik = response.data.usersHik;
+            personMappings = response.data.personMappings;
+
+            displayResults({users1C, usersHik}, startDate, endDate);
+        } catch (error) {
+            console.error('Ошибка при назначении события:', error);
+            alert('Произошла ошибка при назначении события');
+        }
+    }
+
+
+    async function showHikDetails(firstEntryTime, lastExitTime, firstEntryPicUri, lastExitPicUri) {
+        let content = '<div class="modal-content">';
+        if (firstEntryTime) {
+            content += `<p><strong>Приход:</strong> ${formatDateTime(firstEntryTime)}</p>`;
+            if (firstEntryPicUri) {
+                const firstEntryImageUrl = await getEventPicture(firstEntryPicUri);
+                if (firstEntryImageUrl) {
+                    content += `<img src="${firstEntryImageUrl}" alt="Фото прихода" style="max-width: 300px;"><br>`;
+                }
+            }
+        } else {
+            content += '<p><strong>Приход:</strong> Нет</p>';
+        }
+        if (lastExitTime) {
+            content += `<p><strong>Уход:</strong> ${formatDateTime(lastExitTime)}</p>`;
+            if (lastExitPicUri) {
+                const lastExitImageUrl = await getEventPicture(lastExitPicUri);
+                if (lastExitImageUrl) {
+                    content += `<img src="${lastExitImageUrl}" alt="Фото ухода" style="max-width: 300px;">`;
+                }
+            }
+        } else {
+            content += '<p><strong>Уход:</strong> Нет</p>';
+        }
+        content += '</div>';
+
+        showModal(content);
+    }
+
+    function showModal(content) {
+        const modal = document.getElementById('hikModal');
+        const modalContent = document.getElementById('hikModalContent');
+        modalContent.innerHTML = content;
+        modal.style.display = 'block';
+
+        // Устанавливаем максимальную высоту для контента модального окна
+        modalContent.style.maxHeight = '80vh';
+        modalContent.style.overflowY = 'auto';
+
+        // Добавляем кнопку закрытия
+        const closeBtn = document.createElement('span');
+        closeBtn.className = 'close';
+        closeBtn.innerHTML = '&times;';
+        modalContent.insertBefore(closeBtn, modalContent.firstChild);
+
+        // Обработчик для закрытия модального окна
+        closeBtn.onclick = function () {
+            modal.style.display = 'none';
+        }
+
+        // Закрытие при клике вне содержимого модального окна
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    }
+
+    function highlightCell(cell) {
+        cell.classList.add('highlight-cell');
+        setTimeout(() => {
+            cell.classList.remove('highlight-cell');
+        }, 1000);
+    }
+
+    document.addEventListener('click', function (e) {
+        if (e.target.tagName === 'TD') {
+            highlightCell(e.target);
+        }
+    });
+
+    function formatDateTime(dateTimeString) {
+        const date = new Date(dateTimeString);
+        return date.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short'
+        });
+    }
+
+    async function getEventPicture(picUri) {
+        if (!picUri) return null;
+        try {
+            const response = await axios.post('/getPicture', {picUri}, {
+                headers: {'Content-Type': 'application/json'},
+                responseType: 'arraybuffer'  // Важно для получения бинарных данных
+            });
+
+            if (response.status !== 200) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Создаем Blob из полученных данных
+            const blob = new Blob([response.data], {type: 'image/jpeg'});
+
+            // Создаем URL для Blob
+            const imageUrl = URL.createObjectURL(blob);
+
+            // Возвращаем URL, который можно использовать в теге <img>
+            return imageUrl;
+        } catch (error) {
+            console.error('Ошибка при получении изображения:', error);
+            return null;
+        }
+    }
+
+    document.getElementById('exportBtn').addEventListener('click', async () => {
+        const tableData = getTableData();
+        try {
+            const response = await axios.post('/export', tableData, {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'compare.xlsx');
+            document.body.appendChild(link);
+            link.click();
+        } catch (error) {
+            console.error('Ошибка при экспорте:', error);
+        }
+    });
+
+    function getTableData() {
+        const table = document.querySelector('table');
+        const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent);
+        const rows = Array.from(table.querySelectorAll('tr')).slice(1); // Пропускаем заголовок
+
+        const data = rows.map(row => {
+            const cells = Array.from(row.querySelectorAll('td'));
+            return cells.map(cell => cell.textContent);
+        });
+
+        return {headers, data};
+    }
+
+    document.getElementById('searchInput').addEventListener('input', () => {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const table = document.querySelector('table');
+        const rows = Array.from(table.querySelectorAll('tr')).slice(1); // Пропускаем заголовок
+
+        rows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td'));
+            const rowText = cells.map(cell => cell.textContent.toLowerCase()).join(' ');
+            if (rowText.includes(input)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    document.getElementById('unidentifiedEventsBtn').onclick = () => {
+        document.getElementById('unidentifiedEventsModal').style.display = 'block';
+    }
+    // document.addEventListener('change', async function(e) {
+    //     if (e.target && e.target.classList.contains('person-select')) {
+    //         const personId = e.target.value;
+    //         const date = e.target.dataset.date;
+    //         const index = e.target.dataset.index;
+    //
+    //         if (personId) {
+    //             try {
+    //                 const response = await axios.post('/assignUnidentifiedEvent', {
+    //                     personId,
+    //                     date,
+    //                     index
+    //                 });
+    //
+    //                 if (response.data.success) {
+    //                     // Перезагрузка таблицы или обновление конкретной строки
+    //                     displayResults(response.data, startDate, endDate);
+    //                 } else {
+    //                     alert('Не удалось назначить событие сотруднику');
+    //                 }
+    //             } catch (error) {
+    //                 console.error('Ошибка при назначении события:', error);
+    //                 alert('Произошла ошибка при назначении события');
+    //             }
+    //         }
+    //     }
+    // });
+</script>
+</body>
+</html>

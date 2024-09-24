@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сравнение данных</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            background-color: #f0f0f0; /* Светлый фон */
+            color: #333; /* Темный текст */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #333; /* Темный текст */
+            margin-bottom: 10px;
+        }
+
+        form {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="date"], button, .project-label {
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc; /* Светлая рамка */
+            outline: none;
+            background-color: #fff; /* Белый фон */
+            color: #333; /* Темный текст */
+            font-size: 14px;
+        }
+
+        input[type="date"] {
+            background-color: #f9f9f9; /* Светлый фон для даты */
+        }
+
+        button {
+            cursor: pointer;
+            background-color: #007bff; /* Синий фон для кнопки */
+            color: #fff; /* Белый текст */
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3; /* Темнее синий при наведении */
+        }
+
+        .project-label {
+            display: block;
+            text-align: left;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        select {
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            outline: none;
+            background-color: #fff;
+            color: #333;
+            font-size: 14px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            border: 1px solid #ccc;
+            background-color: #fff;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #f0f0f0; /* Светлый фон для заголовков */
+            color: #333; /* Темный текст */
+        }
+
+        td {
+            background-color: #ffffff; /* Белый фон для ячеек */
+            color: #333; /* Темный текст */
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9; /* Светлый фон для четных строк */
+        }
+
+        #loading {
+            text-align: center;
+            font-size: 18px;
+            color: #333; /* Темный текст */
+            margin-top: 20px;
+        }
+
+        #results {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #searchInput {
+            display: block;
+            margin: 0 auto 20px;
+            padding: 10px;
+            width: 80%;
+            max-width: 600px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            background-color: #fff; /* Белый фон */
+            color: #333; /* Темный текст */
+        }
+        .highlight {
+            background-color: #FFFF00;
+        }
+    </style>
+</head>
+<body>
+<h1>Сравнение данных
+    <p><a  href="/detailTabV2">Перейти к другой версии отчета (V2) По сути не сравнение, а все  табеля из Hik</a></p>
+    <p><a  href="/compareMinutes">Перейти к другой версии отчета. В минутах</a></p>
+</h1>
+
+<form id="compareForm">
+    <label for="startDate">Начальная дата:</label>
+    <input type="date" id="startDate" name="startDate" required>
+    <label for="endDate">Конечная дата:</label>
+    <input type="date" id="endDate" name="endDate" required>
+    <br><br>
+    <div style="text-align: left; margin-left: 20px;">
+        <label>Выберите проекты:</label><br>
+        <!-- Предположим, что проект передается через переменные на сервере -->
+        {{range .Projects}}
+        <label class="project-label">
+            <input type="checkbox" name="projects" value="{{.}}"> {{.}}
+        </label>
+        {{end}}
+    </div>
+    <br>
+    <button type="submit">Сравнить</button>
+</form>
+<input type="text" id="searchInput" placeholder="Поиск по таблице...">
+<div id="loading" style="display: none;">Загрузка данных...</div>
+<div id="results"></div>
+<button id="exportBtn" style="display: none;">Экспорт в Excel</button>
+
+<script>
+    document.getElementById('compareForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        const startDate = formData.get('startDate');
+        const endDate = formData.get('endDate');
+        const projects = formData.getAll('projects');
+
+        if (!startDate || !endDate || projects.length === 0) {
+            alert('Пожалуйста, выберите даты начала и конца периода, а также хотя бы один проект');
+            return;
+        }
+
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('results').innerHTML = '';
+
+        try {
+            const response = await axios.post('/compareCorrect', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            displayResults(response.data, startDate, endDate);
+        } catch (error) {
+            document.getElementById('results').innerHTML = `<p>Произошла ошибка: ${error.message}</p>`;
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    });
+
+    function displayResults(matchedUsers, startDate, endDate) {
+        const resultsElement = document.getElementById('results');
+        let html = '<h2>Результаты сравнения</h2>';
+        html += createComparisonTable(matchedUsers, startDate, endDate);
+        resultsElement.innerHTML = html;
+        document.getElementById('exportBtn').style.display = 'block';
+    }
+
+    function createComparisonTable(matchedUsers) {
+        if (!matchedUsers || Object.keys(matchedUsers).length === 0) {
+            return '<p>Нет данных для отображения</p>';
+        }
+
+        const startDate = new Date(document.getElementById('startDate').value);
+        const endDate = new Date(document.getElementById('endDate').value);
+        const daysInPeriod = (endDate - startDate) / (1000 * 60 * 60 * 24) + 1;
+        const selectedProjects = Array.from(document.querySelectorAll('input[name="projects"]:checked')).map(input => input.value);
+
+        let table = '<table><tr><th>Табельный номер</th><th>ФИО сотрудника</th><th>Объект</th><th>Бригада</th>';
+        for (let day = 0; day < daysInPeriod; day++) {
+            const currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + day);
+            const dateStr = currentDate.toISOString().split('T')[0];
+            table += `<th>${dateStr} (1C)</th><th>${dateStr} (Hik)</th>`;
+        }
+        table += '<th>Итого (1C)</th><th>Итого (Hik)</th><th>Разница</th></tr>';
+
+        for (const [tab, user] of Object.entries(matchedUsers)) {
+            if (!selectedProjects.includes(user.Object)) {
+                continue;  // Пропускаем пользователей, чей объект не выбран
+            }
+
+            let total1C = 0;
+            let totalHik = 0;
+            let hasData = false;
+
+            table += `<tr>
+            <td>${user.Tab}</td>
+            <td>${user.Employee}</td>
+            <td>${user.Object}</td>
+            <td>${user.Brigade}</td>`;
+
+            for (let day = 0; day < daysInPeriod; day++) {
+                const currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + day);
+                const dateStr = currentDate.toISOString().split('T')[0];
+
+                const hours1C = user.Dates1C[dateStr] || 0;
+                const hoursHik = user.DatesHik[dateStr] || '00:00';
+
+                let hikHours = 0;
+                if (typeof hoursHik === 'string') {
+                    if (hoursHik.startsWith('У') || hoursHik.startsWith('П')) {
+                        hikHours = 0;  // Не учитываем в общей сумме
+                    } else {
+                        const [hours, minutes] = hoursHik.split(':').map(Number);
+                        hikHours = hours + minutes / 60;
+                    }
+                } else if (typeof hoursHik === 'number') {
+                    hikHours = hoursHik;
+                }
+
+                if (typeof hours1C === 'number' && !['У', 'П', 'ВВ', 'ДО'].includes(hours1C)) {
+                    total1C += hours1C;
+                }
+                totalHik += hikHours;
+
+                if (hours1C > 0 || hikHours > 0) {
+                    hasData = true;
+                }
+
+                const diff = Math.abs(hours1C - hikHours);
+                const isHighlighted = diff > 0.5;  // Разница больше 30 минут
+
+                table += `<td>${hours1C}</td><td class="${isHighlighted ? 'highlight' : ''}">${hoursHik}</td>`;
+            }
+
+            if (!hasData) {
+                continue;  // Пропускаем пользователей без данных
+            }
+
+            const diff = total1C - totalHik;
+
+            table += `<td>${total1C.toFixed(2)}</td><td>${totalHik.toFixed(2)}</td><td>${diff.toFixed(2)}</td></tr>`;
+        }
+
+        table += '</table>';
+        return table;
+    }
+
+    document.getElementById('exportBtn').addEventListener('click', async () => {
+        const tableData = getTableData();
+        try {
+            const response = await axios.post('/export', tableData, {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'compare.xlsx');
+            document.body.appendChild(link);
+            link.click();
+        } catch (error) {
+            console.error('Ошибка при экспорте:', error);
+        }
+    });
+
+    function getTableData() {
+        const table = document.querySelector('table');
+        const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent);
+        const rows = Array.from(table.querySelectorAll('tr')).slice(1); // Пропускаем заголовок
+
+        const data = rows.map(row => {
+            const cells = Array.from(row.querySelectorAll('td'));
+            return cells.map(cell => cell.textContent);
+        });
+
+        return { headers, data };
+    }
+
+    document.getElementById('searchInput').addEventListener('input', () => {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const table = document.querySelector('table');
+        const rows = Array.from(table.querySelectorAll('tr')).slice(1); // Пропускаем заголовок
+
+        rows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td'));
+            const rowText = cells.map(cell => cell.textContent.toLowerCase()).join(' ');
+            if (rowText.includes(input)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+</script>
+</body>
+</html>
